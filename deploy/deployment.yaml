@@ -46,6 +46,10 @@ spec:
             httpGet:
               path: /health
               port: 8080
+              # Talisman redirects plain HTTP to HTTPS; tell it the probe is already "secure"
+              httpHeaders:
+                - name: X-Forwarded-Proto
+                  value: https
             initialDelaySeconds: 5
             periodSeconds: 10
           resources:
