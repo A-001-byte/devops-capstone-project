@@ -1,8 +1,8 @@
-# Customer Accounts Microservice
+# DevOps Capstone
 
-![Build Status](https://github.com/A-001-byte/Devops-Capstone-Final-submission-/actions/workflows/ci-build.yaml/badge.svg)
+![Build Status](https://github.com/A-001-byte/devops-capstone-project/actions/workflows/ci-build.yaml/badge.svg)
 
-A REST microservice that manages customer accounts. It is built with Flask and
+Customer Accounts Microservice: a REST microservice that manages customer accounts. It is built with Flask and
 PostgreSQL, tested with nose, checked with flake8 and pylint, secured with
 Flask-Talisman and CORS, and packaged as a Docker image for Kubernetes.
 
