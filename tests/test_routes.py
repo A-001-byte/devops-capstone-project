@@ -1,4 +1,4 @@
-"""Test cases for the Accounts REST API, security headers and CORS."""
+"""Account Service Tests."""
 import unittest
 
 from service import app, talisman
@@ -17,7 +17,7 @@ SAMPLE = {
 
 
 class TestAccountService(unittest.TestCase):
-    """Exercise every route of the Accounts service."""
+    """Account Service Tests."""
 
     @classmethod
     def setUpClass(cls):
@@ -45,64 +45,68 @@ class TestAccountService(unittest.TestCase):
         return response.get_json()
 
     def test_index(self):
-        """The root describes the service."""
+        """It should get 200_OK from the Home Page"""
         response = self.client.get("/")
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(response.get_json()["name"], "Account REST API Service")
+        self.assertEqual(
+            response.get_json(), {"name": "Account REST API Service", "version": "1.0"}
+        )
 
     def test_health(self):
-        """The health check reports OK."""
+        """It should be healthy"""
         response = self.client.get("/health")
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.get_json()["status"], "OK")
 
     def test_create_account(self):
-        """CREATE returns 201, the new account and a Location header."""
+        """It should Create a new Account"""
         response = self.client.post(BASE_URL, json=SAMPLE)
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         self.assertIn("/accounts/", response.headers["Location"])
         self.assertEqual(response.get_json()["name"], "Grace Hopper")
 
-    def test_create_wrong_content_type(self):
-        """CREATE without JSON is rejected with 415."""
+    def test_create_account_bad_data(self):
+        """It should not Create an Account when sending the wrong data"""
+        response = self.client.post(BASE_URL, json={"name": "No Email"})
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_create_account_wrong_media_type(self):
+        """It should not Create an Account when sending the wrong media type"""
         response = self.client.post(BASE_URL, data="x", content_type="text/plain")
         self.assertEqual(response.status_code, status.HTTP_415_UNSUPPORTED_MEDIA_TYPE)
 
-    def test_list_accounts(self):
-        """LIST returns every account."""
+    def test_get_account_list(self):
+        """It should Get a list of Accounts"""
         self._create()
         self._create(name="Alan Turing", email="alan@example.com")
         response = self.client.get(BASE_URL)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(len(response.get_json()), 2)
 
-    def test_read_account(self):
-        """READ returns one account."""
+    def test_get_account(self):
+        """It should Read a single Account"""
         created = self._create()
         response = self.client.get(f"{BASE_URL}/{created['id']}")
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.get_json()["email"], "grace@example.com")
 
-    def test_read_missing_account(self):
-        """READ of an unknown id is a 404."""
+    def test_get_account_not_found(self):
+        """It should not Read an Account that is not found"""
         response = self.client.get(f"{BASE_URL}/0")
         self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
 
     def test_update_account(self):
-        """UPDATE changes the stored account."""
+        """It should Update an existing Account"""
         created = self._create()
         created["name"] = "Rear Admiral Hopper"
         response = self.client.put(f"{BASE_URL}/{created['id']}", json=created)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.get_json()["name"], "Rear Admiral Hopper")
-
-    def test_update_missing_account(self):
-        """UPDATE of an unknown id is a 404."""
-        response = self.client.put(f"{BASE_URL}/0", json=SAMPLE)
-        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+        missing = self.client.put(f"{BASE_URL}/0", json=SAMPLE)
+        self.assertEqual(missing.status_code, status.HTTP_404_NOT_FOUND)
 
     def test_delete_account(self):
-        """DELETE returns 204 and removes the account."""
+        """It should Delete an Account"""
         created = self._create()
         response = self.client.delete(f"{BASE_URL}/{created['id']}")
         self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
@@ -110,17 +114,12 @@ class TestAccountService(unittest.TestCase):
         self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
 
     def test_method_not_allowed(self):
-        """An unsupported method returns 405."""
+        """It should not allow an illegal method call"""
         response = self.client.delete(BASE_URL)
         self.assertEqual(response.status_code, status.HTTP_405_METHOD_NOT_ALLOWED)
 
-    def test_bad_request(self):
-        """A body missing required fields returns 400."""
-        response = self.client.post(BASE_URL, json={"name": "No Email"})
-        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-
     def test_security_headers(self):
-        """Talisman adds the security headers."""
+        """It should return security headers"""
         response = self.client.get("/", environ_overrides=HTTPS_ENVIRON)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         headers = {
@@ -132,7 +131,7 @@ class TestAccountService(unittest.TestCase):
         for key, value in headers.items():
             self.assertEqual(response.headers.get(key), value)
 
-    def test_cors_headers(self):
-        """CORS adds Access-Control-Allow-Origin."""
+    def test_cors_security(self):
+        """It should return a CORS header"""
         response = self.client.get("/", environ_overrides=HTTPS_ENVIRON)
         self.assertEqual(response.headers.get("Access-Control-Allow-Origin"), "*")

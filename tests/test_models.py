@@ -1,4 +1,4 @@
-"""Test cases for the Account model."""
+"""Test Cases for Account Model."""
 import unittest
 from datetime import date
 
@@ -15,7 +15,7 @@ SAMPLE = {
 
 
 class TestAccountModel(unittest.TestCase):
-    """Exercise create, read, update, delete and (de)serialization."""
+    """Test Cases for Account Model."""
 
     @classmethod
     def setUpClass(cls):
@@ -34,58 +34,87 @@ class TestAccountModel(unittest.TestCase):
     def tearDown(self):
         db.session.remove()
 
-    def test_create_and_find(self):
-        """A saved account can be found again."""
+    def test_create_an_account(self):
+        """It should Create an account and add it to the database"""
+        self.assertEqual(Account.all(), [])
         account = Account().deserialize(SAMPLE)
         account.create()
-        self.assertIsNotNone(account.id)
-        self.assertEqual(Account.find(account.id).name, "Ada Lovelace")
         self.assertEqual(len(Account.all()), 1)
 
-    def test_serialize_round_trip(self):
-        """Serializing then deserializing keeps the data."""
+    def test_add_an_account(self):
+        """It should Create an Account and assert that it exists"""
+        account = Account().deserialize(SAMPLE)
+        self.assertIsNotNone(account)
+        self.assertEqual(account.id, None)
+        self.assertEqual(account.name, "Ada Lovelace")
+        self.assertEqual(account.date_joined, date(2024, 1, 15))
+
+    def test_delete_an_account(self):
+        """It should Delete an account from the database"""
         account = Account().deserialize(SAMPLE)
         account.create()
-        data = account.serialize()
-        self.assertEqual(data["date_joined"], "2024-01-15")
-        again = Account().deserialize(data)
-        self.assertEqual(again.email, SAMPLE["email"])
-        self.assertEqual(again.date_joined, date(2024, 1, 15))
-
-    def test_update(self):
-        """Updating changes the stored data."""
-        account = Account().deserialize(SAMPLE)
-        account.create()
-        account.name = "Augusta Ada King"
-        account.update()
-        self.assertEqual(Account.find(account.id).name, "Augusta Ada King")
-
-    def test_update_without_id(self):
-        """Updating an unsaved account is an error."""
-        with self.assertRaises(DataValidationError):
-            Account().deserialize(SAMPLE).update()
-
-    def test_delete(self):
-        """A deleted account is gone."""
-        account = Account().deserialize(SAMPLE)
-        account.create()
+        self.assertEqual(len(Account.all()), 1)
         account.delete()
         self.assertEqual(Account.all(), [])
         self.assertIsNone(Account.find(account.id))
 
-    def test_deserialize_missing_field(self):
-        """Missing required fields are rejected."""
+    def test_deserialize_an_account(self):
+        """It should Deserialize an account"""
+        account = Account().deserialize(SAMPLE)
+        self.assertEqual(account.email, "ada@example.com")
+        self.assertEqual(account.address, "12 Analytical St")
+        self.assertEqual(account.phone_number, "555-0100")
+
+    def test_deserialize_with_key_error(self):
+        """It should not Deserialize an account with a KeyError"""
         with self.assertRaises(DataValidationError):
             Account().deserialize({"name": "No Email"})
 
-    def test_deserialize_bad_data(self):
-        """Non-dictionary data and bad dates are rejected."""
+    def test_deserialize_with_type_error(self):
+        """It should not Deserialize an account with a TypeError"""
         with self.assertRaises(DataValidationError):
             Account().deserialize("not a dict")
         with self.assertRaises(DataValidationError):
             Account().deserialize({**SAMPLE, "date_joined": "yesterday"})
 
-    def test_repr(self):
-        """The repr names the account."""
+    def test_find_by_name(self):
+        """It should Find an Account by name"""
+        Account().deserialize(SAMPLE).create()
+        found = Account.find_by_name("Ada Lovelace")
+        self.assertEqual(len(found), 1)
+        self.assertEqual(found[0].email, "ada@example.com")
+        self.assertEqual(Account.find_by_name("Nobody"), [])
+
+    def test_list_all_accounts(self):
+        """It should List all Accounts in the database"""
+        Account().deserialize(SAMPLE).create()
+        Account().deserialize({**SAMPLE, "name": "Alan Turing"}).create()
+        self.assertEqual(len(Account.all()), 2)
+
+    def test_read_an_account(self):
+        """It should Read an account"""
         account = Account().deserialize(SAMPLE)
-        self.assertIn("Ada Lovelace", repr(account))
+        account.create()
+        found = Account.find(account.id)
+        self.assertEqual(found.id, account.id)
+        self.assertEqual(found.name, "Ada Lovelace")
+        self.assertIn("Ada Lovelace", repr(found))
+
+    def test_serialize_an_account(self):
+        """It should Serialize an account"""
+        account = Account().deserialize(SAMPLE)
+        account.create()
+        data = account.serialize()
+        self.assertEqual(data["id"], account.id)
+        self.assertEqual(data["name"], "Ada Lovelace")
+        self.assertEqual(data["date_joined"], "2024-01-15")
+
+    def test_update_an_account(self):
+        """It should Update an account"""
+        account = Account().deserialize(SAMPLE)
+        account.create()
+        account.name = "Augusta Ada King"
+        account.update()
+        self.assertEqual(Account.find(account.id).name, "Augusta Ada King")
+        with self.assertRaises(DataValidationError):
+            Account().deserialize(SAMPLE).update()

@@ -78,6 +78,11 @@ class Account(db.Model):
         """Return the account with this id, or None."""
         return db.session.get(cls, account_id)
 
+    @classmethod
+    def find_by_name(cls, name):
+        """Return every account with this name."""
+        return cls.query.filter(cls.name == name).all()
+
     @staticmethod
     def init_db(app):
         """Bind the database to the app and create the tables."""
